@@ -34,7 +34,7 @@ def run_cli():
         elif escolha == "3":
             gerar_memoria_calculo()
         elif escolha == "4":
-            gerar_relatorio_pdf()
+            print("Você deve realizar um cálculo primeiro para gerar um relatório.")
         elif escolha == "5":
             print("Saindo da CLI...")
             break
@@ -117,6 +117,12 @@ def calcular_pre_dimensionamento():
     print("\nRelatório de Pré-Dimensionamento:")
     for key, value in relatorio.items():
         print(f"{key}: {value}")
+
+    # Pergunta ao usuário se ele deseja salvar o relatório em PDF
+    salvar_pdf = input("\nDeseja salvar o relatório em PDF? (s/n): ").strip().lower()
+    if salvar_pdf == "s":
+        gerar_relatorio_pdf(relatorio)
+        print("Relatório em PDF gerado com sucesso.")
 
 def executar_analise_estrutura_2d():
     print("\n--- Análise Estrutural 2D ---")
