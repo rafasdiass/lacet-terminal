@@ -1,5 +1,3 @@
-# app_calculator/config.py
-
 # Configurações gerais de materiais e propriedades mecânicas
 
 # Resistência característica do concreto (MPa)
