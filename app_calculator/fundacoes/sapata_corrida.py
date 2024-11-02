@@ -1,11 +1,18 @@
 from typing import Dict, Tuple
 import math
 
+class Solo:
+    """Classe que representa as propriedades do solo."""
+    def __init__(self, capacidade_carga: float, angulo_atrito: float, peso_proprio: float):
+        self.capacidade_carga = capacidade_carga  # Capacidade de carga do solo (kN/m²)
+        self.angulo_atrito = math.radians(angulo_atrito)  # Converte o ângulo de atrito de graus para radianos
+        self.peso_proprio = peso_proprio  # Peso próprio do solo (kN/m³)
+
 class SapataCorrida:
     """Classe responsável pelo cálculo de uma Sapata Corrida."""
 
     def __init__(self, largura_base: float, altura_sapata: float, comprimento_sapata: float, fck: float, carga_kN: float,
-                 cobrimento: float, diametro_aco: float, angulo_atrito_solo: float, peso_proprio_solo: float):
+                 cobrimento: float, diametro_aco: float, solo: Solo):
         self.largura_base = largura_base
         self.altura_sapata = altura_sapata
         self.comprimento_sapata = comprimento_sapata
@@ -13,8 +20,7 @@ class SapataCorrida:
         self.carga_kN = carga_kN
         self.cobrimento = cobrimento / 1000  # Converte de mm para metros
         self.diametro_aco = diametro_aco / 1000  # Converte de mm para metros
-        self.angulo_atrito_solo = math.radians(angulo_atrito_solo)  # Converte de graus para radianos
-        self.peso_proprio_solo = peso_proprio_solo
+        self.solo = solo  # Instância da classe Solo
 
     def calcular_tensao_solo(self) -> float:
         """Calcula a tensão admissível no solo devido à carga."""
@@ -44,8 +50,8 @@ class SapataCorrida:
         return tensao_cisalhamento
 
     def verificar_estabilidade(self) -> bool:
-        forca_normal_solo = self.carga_kN - (self.peso_proprio_solo * self.largura_base * self.altura_sapata)
-        resistencia_deslizamento = forca_normal_solo * math.tan(self.angulo_atrito_solo)
+        forca_normal_solo = self.carga_kN - (self.solo.peso_proprio * self.largura_base * self.altura_sapata)
+        resistencia_deslizamento = forca_normal_solo * math.tan(self.solo.angulo_atrito)
 
         if resistencia_deslizamento < self.carga_kN:
             raise ValueError("A sapata não é estável ao deslizamento.")

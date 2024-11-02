@@ -1,12 +1,26 @@
-from typing import Dict
 import math
+from typing import Dict
+
+class Solo:
+    """
+    Classe representando as propriedades do solo.
+    """
+    def __init__(self, capacidade_carga: float, coeficiente_atrito: float = 0.5):
+        """
+        Inicializa uma instância de Solo.
+
+        :param capacidade_carga: Capacidade de carga do solo (kN/m²)
+        :param coeficiente_atrito: Coeficiente de atrito lateral do solo (padrão: 0.5)
+        """
+        self.capacidade_carga = capacidade_carga
+        self.coeficiente_atrito = coeficiente_atrito
 
 class Radier:
     """
     Classe responsável pelos cálculos de uma fundação do tipo Radier.
     """
 
-    def __init__(self, carga_total: float, fck: float, area: float, espessura: float, capacidade_solo: float, peso_concreto: float = 25, fyk: float = 500):
+    def __init__(self, carga_total: float, fck: float, area: float, espessura: float, solo: Solo, peso_concreto: float = 25, fyk: float = 500):
         """
         Inicializa uma instância da fundação Radier.
 
@@ -14,7 +28,7 @@ class Radier:
         :param fck: Resistência característica do concreto (MPa)
         :param area: Área do radier (m²)
         :param espessura: Espessura da laje do radier (m)
-        :param capacidade_solo: Capacidade de carga do solo (kN/m²)
+        :param solo: Instância da classe Solo com propriedades do solo
         :param peso_concreto: Peso específico do concreto (kN/m³) - padrão: 25 kN/m³
         :param fyk: Resistência característica do aço (MPa) - padrão: 500 MPa
         """
@@ -22,7 +36,7 @@ class Radier:
         self.fck = fck
         self.area = area
         self.espessura = espessura
-        self.capacidade_solo = capacidade_solo
+        self.solo = solo
         self.peso_concreto = peso_concreto
         self.fyk = fyk
 
@@ -57,7 +71,7 @@ class Radier:
         :return: True se a tensão estiver segura, False caso contrário.
         """
         tensao_no_solo = self.calcular_tensao_no_solo()
-        return tensao_no_solo <= self.capacidade_solo
+        return tensao_no_solo <= self.solo.capacidade_carga
 
     def calcular_carga_admissivel(self) -> float:
         """
@@ -65,7 +79,7 @@ class Radier:
 
         :return: Carga admissível (kN)
         """
-        return self.capacidade_solo * self.area
+        return self.solo.capacidade_carga * self.area
 
     def verificar_ruptura_solo(self) -> bool:
         """

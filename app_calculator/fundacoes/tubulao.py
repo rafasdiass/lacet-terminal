@@ -1,12 +1,28 @@
 from typing import Dict
 import math
 
+class Solo:
+    def __init__(self, tipo: str, capacidade_carga: float, coeficiente_atrito: float, compressibilidade: float):
+        """
+        Inicializa uma instância de solo com suas propriedades.
+        
+        :param tipo: Tipo do solo (argiloso, arenoso, rochoso, etc.)
+        :param capacidade_carga: Capacidade de carga do solo (kN/m²)
+        :param coeficiente_atrito: Coeficiente de atrito do solo
+        :param compressibilidade: Módulo de deformação do solo (kN/m²)
+        """
+        self.tipo = tipo
+        self.capacidade_carga = capacidade_carga
+        self.coeficiente_atrito = coeficiente_atrito
+        self.compressibilidade = compressibilidade
+
 class Tubulao:
     """
     Classe responsável pelos cálculos de uma fundação do tipo Tubulão.
     """
 
-    def __init__(self, carga: float, fck: float, diametro: float, altura: float, tipo: str, escavacao_prof: float, profundidade_agua: float):
+    def __init__(self, carga: float, fck: float, diametro: float, altura: float, tipo: str, escavacao_prof: float, 
+                 profundidade_agua: float, solo: Solo):
         """
         Inicializa uma instância da fundação Tubulão.
 
@@ -17,6 +33,7 @@ class Tubulao:
         :param tipo: Tipo de tubulão ("Céu Aberto" ou "Sob Ar Comprimido")
         :param escavacao_prof: Profundidade da escavação (m)
         :param profundidade_agua: Profundidade do nível freático (m)
+        :param solo: Objeto da classe Solo contendo as propriedades do solo
         """
         self.carga = carga
         self.fck = fck
@@ -25,6 +42,7 @@ class Tubulao:
         self.tipo = tipo
         self.escavacao_prof = escavacao_prof
         self.profundidade_agua = profundidade_agua
+        self.solo = solo
 
     def calcular_area(self) -> float:
         """
@@ -52,13 +70,21 @@ class Tubulao:
         area = self.calcular_area()
         return self.carga / area
 
-    def calcular_escavacao(self) -> float:
+    def calcular_carga_admissivel(self) -> float:
         """
-        Calcula o volume de escavação necessário para o tubulão (m³).
+        Calcula a carga admissível com base na capacidade do solo.
 
-        :return: Volume de escavação (m³)
+        :return: Carga admissível (kN)
         """
-        return self.calcular_area() * self.escavacao_prof
+        return self.solo.capacidade_carga * self.calcular_area()
+
+    def verificar_ruptura_solo(self) -> bool:
+        """
+        Verifica se há risco de ruptura do solo.
+
+        :return: True se houver risco de ruptura, False caso contrário.
+        """
+        return self.carga > self.calcular_carga_admissivel()
 
     def calcular_pressao_lateral(self) -> float:
         """
@@ -66,30 +92,29 @@ class Tubulao:
 
         :return: Pressão lateral de água (kN/m²)
         """
-        # Pressão hidrostática = profundidade * densidade da água (1000 kg/m³) * gravidade (9.81 m/s²)
         densidade_agua = 1000  # kg/m³
         gravidade = 9.81  # m/s²
         return self.profundidade_agua * densidade_agua * gravidade / 1000  # Convertendo para kN/m²
 
-    def calcular_armacao(self) -> Dict[str, float]:
+    def verificar_estabilidade_deslizamento(self) -> bool:
         """
-        Calcula a armadura necessária para o tubulão.
+        Verifica a estabilidade ao deslizamento com base no coeficiente de atrito do solo.
 
-        :return: Dicionário com os resultados da armadura (quantidade e diâmetro)
+        :return: True se for estável ao deslizamento, False caso contrário.
         """
-        armadura_minima = 0.0015  # Proporção mínima de aço para tubulão (mais leve que blocos)
-        area_aco = armadura_minima * self.calcular_area()  # Área de aço necessária (cm²)
+        forca_normal = self.carga  # Considerando que a carga é a força normal
+        resistencia_deslizamento = forca_normal * self.solo.coeficiente_atrito
+        return resistencia_deslizamento >= self.carga
 
-        # Assumindo barras de aço de 16 mm
-        diametro_barras = 16 / 1000  # 16 mm em metros
-        area_barra = (math.pi * diametro_barras ** 2) / 4  # Área de uma barra (m²)
+    def calcular_assentamento(self) -> float:
+        """
+        Calcula o assentamento esperado do solo com base na compressibilidade do solo.
 
-        quantidade_barras = area_aco / area_barra  # Número de barras necessárias
-
-        return {
-            "quantidade_barras": quantidade_barras,
-            "diametro_barras": diametro_barras * 1000  # Converter para mm
-        }
+        :return: Assentamento do solo (mm)
+        """
+        tensao_no_solo = self.calcular_tensao_no_solo()
+        assentamento = (tensao_no_solo / self.solo.compressibilidade) * self.altura * 1000  # Convertendo para mm
+        return assentamento
 
     def gerar_relatorio(self) -> Dict[str, float]:
         """
@@ -101,8 +126,9 @@ class Tubulao:
             "Área da Base (m²)": self.calcular_area(),
             "Tensão no Solo (kN/m²)": self.calcular_tensao_no_solo(),
             "Volume de Concreto (m³)": self.calcular_volume_concreto(),
-            "Volume de Escavação (m³)": self.calcular_escavacao(),
             "Pressão Lateral da Água (kN/m²)": self.calcular_pressao_lateral(),
-            "Armadura - Quantidade de Barras": self.calcular_armacao()["quantidade_barras"],
-            "Armadura - Diâmetro das Barras (mm)": self.calcular_armacao()["diametro_barras"]
+            "Carga Admissível (kN)": self.calcular_carga_admissivel(),
+            "Ruptura do Solo": self.verificar_ruptura_solo(),
+            "Estabilidade ao Deslizamento": self.verificar_estabilidade_deslizamento(),
+            "Assentamento Estimado do Solo (mm)": self.calcular_assentamento()
         }

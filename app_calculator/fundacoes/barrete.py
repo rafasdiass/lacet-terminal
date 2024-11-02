@@ -6,7 +6,7 @@ class Barrete:
     Classe responsável pelos cálculos de uma fundação do tipo Barrete.
     """
 
-    def __init__(self, carga: float, fck: float, largura: float, altura: float, comprimento: float, capacidade_solo: float, peso_concreto: float = 25):
+    def __init__(self, carga: float, fck: float, largura: float, altura: float, comprimento: float, capacidade_solo: float, peso_concreto: float = 25, solo=None):
         """
         Inicializa uma instância da fundação Barrete.
 
@@ -17,6 +17,7 @@ class Barrete:
         :param comprimento: Comprimento do barrete (m)
         :param capacidade_solo: Capacidade de carga do solo (kN/m²)
         :param peso_concreto: Peso específico do concreto (kN/m³) - padrão: 25 kN/m³
+        :param solo: Objeto representando as propriedades do solo
         """
         self.carga = carga
         self.fck = fck
@@ -25,6 +26,11 @@ class Barrete:
         self.comprimento = comprimento
         self.capacidade_solo = capacidade_solo
         self.peso_concreto = peso_concreto
+        self.solo = solo  # Objeto de solo que armazena propriedades como tipo e capacidade
+
+        # Atualiza a capacidade de carga do solo, se o solo foi fornecido
+        if self.solo and hasattr(solo, 'capacidade_carga'):
+            self.capacidade_solo = solo.capacidade_carga
 
     def calcular_area_base(self) -> float:
         """

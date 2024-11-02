@@ -1,12 +1,29 @@
 from typing import Dict
 import math
 
+class Solo:
+    """
+    Classe para representar as propriedades do solo.
+    """
+    def __init__(self, tipo: str, capacidade_carga: float, coeficiente_atrito: float, compressibilidade: float):
+        """
+        Inicializa uma instância de Solo.
+        :param tipo: Tipo de solo (ex: "argiloso", "arenoso")
+        :param capacidade_carga: Capacidade de carga do solo (kN/m²)
+        :param coeficiente_atrito: Coeficiente de atrito do solo
+        :param compressibilidade: Módulo de deformação do solo (kN/m²)
+        """
+        self.tipo = tipo
+        self.capacidade_carga = capacidade_carga
+        self.coeficiente_atrito = coeficiente_atrito
+        self.compressibilidade = compressibilidade
+
 class TubulaoCeuAberto:
     """
     Classe responsável pelos cálculos de uma fundação do tipo Tubulão Céu Aberto.
     """
 
-    def __init__(self, carga: float, fck: float, diametro: float, profundidade: float, capacidade_solo: float, peso_concreto: float = 25, compressibilidade_solo: float = 15000):
+    def __init__(self, carga: float, fck: float, diametro: float, profundidade: float, solo: Solo, peso_concreto: float = 25):
         """
         Inicializa uma instância da fundação Tubulão Céu Aberto.
 
@@ -14,17 +31,15 @@ class TubulaoCeuAberto:
         :param fck: Resistência característica do concreto (MPa)
         :param diametro: Diâmetro do tubulão (m)
         :param profundidade: Profundidade do tubulão (m)
-        :param capacidade_solo: Capacidade de carga do solo (kN/m²)
+        :param solo: Instância da classe Solo com as propriedades do solo
         :param peso_concreto: Peso específico do concreto (kN/m³) - padrão: 25 kN/m³
-        :param compressibilidade_solo: Módulo de deformação típico do solo (kN/m²) - padrão: 15000 kN/m²
         """
         self.carga = carga
         self.fck = fck
         self.diametro = diametro
         self.profundidade = profundidade
-        self.capacidade_solo = capacidade_solo
+        self.solo = solo
         self.peso_concreto = peso_concreto
-        self.compressibilidade_solo = compressibilidade_solo
 
     def calcular_area_base(self) -> float:
         """Calcula a área da base do tubulão (m²)."""
@@ -44,7 +59,7 @@ class TubulaoCeuAberto:
 
     def calcular_carga_admissivel(self) -> float:
         """Calcula a carga admissível do tubulão com base na capacidade do solo."""
-        return self.capacidade_solo * self.calcular_area_base()
+        return self.solo.capacidade_carga * self.calcular_area_base()
 
     def verificar_ruptura_solo(self) -> bool:
         """Verifica se há risco de ruptura do solo."""
@@ -85,13 +100,12 @@ class TubulaoCeuAberto:
     def calcular_assentamento_solo(self) -> float:
         """Calcula o assentamento esperado do solo com base na tensão aplicada."""
         tensao_no_solo = self.calcular_tensao_no_solo()
-        assentamento = (tensao_no_solo / self.compressibilidade_solo) * self.profundidade * 1000
+        assentamento = (tensao_no_solo / self.solo.compressibilidade) * self.profundidade * 1000  # Conversão para mm
         return assentamento
 
     def verificar_estabilidade_deslizamento(self) -> bool:
         """Verifica a estabilidade ao deslizamento."""
-        coeficiente_atrito = 0.5  # Coeficiente de atrito típico para solo
-        resistencia_lateral = coeficiente_atrito * self.calcular_area_base() * self.capacidade_solo
+        resistencia_lateral = self.solo.coeficiente_atrito * self.calcular_area_base() * self.solo.capacidade_carga
         return self.carga <= resistencia_lateral
 
     def verificar_estabilidade_tombamento(self) -> bool:

@@ -6,7 +6,7 @@ class TubulaoArComprimido:
     Classe responsável pelos cálculos de uma fundação do tipo Tubulão Sob Ar Comprimido.
     """
 
-    def __init__(self, carga: float, fck: float, diametro: float, profundidade: float, capacidade_solo: float, pressao_ar: float, peso_concreto: float = 25):
+    def __init__(self, carga: float, fck: float, diametro: float, profundidade: float, pressao_ar: float, tipo_solo: Dict[str, float], peso_concreto: float = 25):
         """
         Inicializa uma instância da fundação Tubulão Sob Ar Comprimido.
 
@@ -14,16 +14,17 @@ class TubulaoArComprimido:
         :param fck: Resistência característica do concreto (MPa)
         :param diametro: Diâmetro do tubulão (m)
         :param profundidade: Profundidade do tubulão (m)
-        :param capacidade_solo: Capacidade de carga do solo (kN/m²)
         :param pressao_ar: Pressão aplicada pelo ar comprimido na escavação (kPa)
+        :param tipo_solo: Dicionário com propriedades do solo (capacidade de carga, coeficiente de atrito, etc.)
         :param peso_concreto: Peso específico do concreto (kN/m³) - padrão: 25 kN/m³
         """
         self.carga = carga
         self.fck = fck
         self.diametro = diametro
         self.profundidade = profundidade
-        self.capacidade_solo = capacidade_solo
         self.pressao_ar = pressao_ar
+        self.capacidade_solo = tipo_solo["capacidade_carga"]
+        self.coef_atrito_solo = tipo_solo["coeficiente_atrito"]
         self.peso_concreto = peso_concreto
 
     def calcular_area_base(self) -> float:
@@ -88,14 +89,13 @@ class TubulaoArComprimido:
 
     def calcular_assentamento_solo(self) -> float:
         """Calcula o assentamento esperado do solo com base na tensão aplicada."""
-        modulo_deformacao = 15000  # kN/m² para solos firmes
+        modulo_deformacao = 15000  # kN/m² para solos firmes (exemplo)
         assentamento = (self.calcular_tensao_no_solo() / modulo_deformacao) * self.profundidade * 1000
         return assentamento
 
     def verificar_estabilidade_deslizamento(self) -> bool:
         """Verifica a estabilidade ao deslizamento."""
-        coeficiente_atrito = 0.5  # Coeficiente de atrito típico para solo-coeficiente
-        resistencia_lateral = coeficiente_atrito * self.calcular_area_base() * self.capacidade_solo
+        resistencia_lateral = self.coef_atrito_solo * self.calcular_area_base() * self.capacidade_solo
         return self.carga <= resistencia_lateral
 
     def verificar_estabilidade_tombamento(self) -> bool:

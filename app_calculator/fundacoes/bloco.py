@@ -6,7 +6,7 @@ class Bloco:
     Classe responsável pelos cálculos de uma fundação do tipo Bloco.
     """
 
-    def __init__(self, carga: float, fck: float, largura: float, comprimento: float, altura: float, peso_concreto: float = 25):
+    def __init__(self, carga: float, fck: float, largura: float, comprimento: float, altura: float, peso_concreto: float = 25, solo=None):
         """
         Inicializa uma instância da fundação Bloco.
 
@@ -16,6 +16,7 @@ class Bloco:
         :param comprimento: Comprimento do bloco (m)
         :param altura: Altura do bloco (m)
         :param peso_concreto: Peso específico do concreto (kN/m³) - padrão: 25 kN/m³
+        :param solo: Objeto representando as propriedades do solo
         """
         self.carga = carga
         self.fck = fck
@@ -23,54 +24,49 @@ class Bloco:
         self.comprimento = comprimento
         self.altura = altura
         self.peso_concreto = peso_concreto
+        self.solo = solo  # Objeto de solo que armazena propriedades como tipo e capacidade de carga
+
+        # Atualiza a capacidade do solo a partir do objeto de solo, se ele for fornecido
+        if self.solo and hasattr(self.solo, 'capacidade_carga'):
+            self.capacidade_solo = self.solo.capacidade_carga
+        else:
+            # Valor padrão caso o solo não seja fornecido
+            self.capacidade_solo = 0.4 * self.fck
 
     def calcular_area(self) -> float:
         """
         Calcula a área da base do bloco (m²).
-
-        :return: Área da base do bloco (m²)
         """
         return self.largura * self.comprimento
 
     def calcular_volume_concreto(self) -> float:
         """
         Calcula o volume de concreto do bloco (m³).
-
-        :return: Volume de concreto (m³)
         """
         return self.calcular_area() * self.altura
 
     def calcular_peso_concreto(self) -> float:
         """
         Calcula o peso total do concreto do bloco (kN).
-
-        :return: Peso do concreto (kN)
         """
         return self.calcular_volume_concreto() * self.peso_concreto
 
     def calcular_tensao_solo(self) -> float:
         """
         Calcula a tensão no solo com base na carga aplicada e na área da base do bloco.
-
-        :return: Tensão no solo (kN/m²)
         """
         return self.carga / self.calcular_area()
 
     def verificar_segurança_tensao(self) -> bool:
         """
-        Verifica se a tensão no solo está dentro dos limites aceitáveis para a resistência do concreto.
-
-        :return: True se a tensão estiver dentro dos limites, False caso contrário.
+        Verifica se a tensão no solo está dentro dos limites aceitáveis para a resistência do solo.
         """
         tensao_solo = self.calcular_tensao_solo()
-        tensao_admissivel = 0.4 * self.fck  # Tensão admissível é geralmente 40% do fck
-        return tensao_solo <= tensao_admissivel
+        return tensao_solo <= self.capacidade_solo
 
     def calcular_armacao_flexao(self) -> Dict[str, float]:
         """
         Calcula a armadura necessária para resistir ao momento fletor.
-
-        :return: Dicionário com a área de aço necessária e o diâmetro das barras
         """
         momento_fletor = (self.carga * self.comprimento) / 8  # Momento fletor máximo
         d = self.altura - 0.05  # Altura útil com coberto nominal de 5 cm
@@ -94,8 +90,6 @@ class Bloco:
     def calcular_resistencia_cisalhamento(self) -> float:
         """
         Calcula a tensão de cisalhamento no bloco e verifica a resistência ao cisalhamento.
-
-        :return: Tensão de cisalhamento (em MPa)
         """
         area_cisalhamento = self.largura * self.altura
         tensao_cisalhamento = self.carga / area_cisalhamento
@@ -109,10 +103,7 @@ class Bloco:
     def calcular_armacao_cisalhamento(self) -> Dict[str, float]:
         """
         Calcula a armadura necessária para resistir ao cisalhamento.
-
-        :return: Dicionário com a quantidade de estribos e o diâmetro das barras
         """
-        # Proporção mínima de aço para cisalhamento (estribos)
         armadura_minima_cisalhamento = 0.0015
         area_aco_cisalhamento = armadura_minima_cisalhamento * self.largura * self.altura  # Área de aço (m²)
 
@@ -129,8 +120,6 @@ class Bloco:
     def gerar_relatorio(self) -> Dict[str, float]:
         """
         Gera um relatório detalhado com todos os cálculos do bloco.
-
-        :return: Dicionário contendo os resultados dos cálculos
         """
         return {
             "Área do Bloco (m²)": self.calcular_area(),

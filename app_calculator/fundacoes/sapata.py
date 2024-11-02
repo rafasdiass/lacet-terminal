@@ -1,13 +1,20 @@
 from typing import Dict
 import math
 
+class Solo:
+    def __init__(self, tipo: str, capacidade_carga: float, peso_especifico: float, angulo_atrito: float):
+        self.tipo = tipo
+        self.capacidade_carga = capacidade_carga  # Capacidade de carga do solo (kN/m²)
+        self.peso_especifico = peso_especifico  # Peso específico do solo (kN/m³)
+        self.angulo_atrito = angulo_atrito  # Ângulo de atrito interno do solo (em graus)
+
 class Sapata:
-    def __init__(self, carga: float, fck: float, base: float, altura: float, capacidade_solo: float, peso_concreto: float = 25, coef_puncionamento: float = 0.8):
+    def __init__(self, carga: float, fck: float, base: float, altura: float, solo: Solo, peso_concreto: float = 25, coef_puncionamento: float = 0.8):
         self.carga = carga
         self.fck = fck
         self.base = base
         self.altura = altura
-        self.capacidade_solo = capacidade_solo
+        self.solo = solo
         self.peso_concreto = peso_concreto
         self.coef_puncionamento = coef_puncionamento
 
@@ -24,7 +31,7 @@ class Sapata:
         return self.carga / self.calcular_area()
 
     def calcular_carga_admissivel(self) -> float:
-        return self.capacidade_solo * self.calcular_area()
+        return self.solo.capacidade_carga * self.calcular_area()
 
     def verificar_ruptura_solo(self) -> bool:
         return self.carga > self.calcular_carga_admissivel()
@@ -55,9 +62,8 @@ class Sapata:
         return self.carga / area_critica
 
     def verificar_estabilidade_deslizamento(self) -> bool:
-        angulo_atrito_solo = 30
         forca_normal = self.calcular_peso_concreto()
-        resistencia_deslizamento = forca_normal * math.tan(math.radians(angulo_atrito_solo))
+        resistencia_deslizamento = forca_normal * math.tan(math.radians(self.solo.angulo_atrito))
         if resistencia_deslizamento < self.carga:
             raise ValueError("A sapata não é estável ao deslizamento.")
         return True

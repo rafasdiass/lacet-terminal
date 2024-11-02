@@ -1,0 +1,3 @@
+([('manage',
+   '/Users/rafaeldias/projetos/calculadora-socio/LCT_Calculator/dist/manage',
+   'EXECUTABLE')],)

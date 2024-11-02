@@ -5,8 +5,7 @@ class EstacaHeliceContinua:
     """Classe responsável pelo cálculo de uma Estaca Hélice Contínua com cálculos avançados."""
 
     def __init__(self, diametro_estaca: float, profundidade_estaca: float, fck: float, fyk: float,
-                 carga_vertical_kN: float, tensao_admissivel_solo: float, cobrimento: float,
-                 diametro_aco: float, peso_concreto: float):
+                 carga_vertical_kN: float, cobrimento: float, diametro_aco: float, peso_concreto: float, solo=None):
         """
         Inicializa os parâmetros da Estaca Hélice Contínua.
 
@@ -15,20 +14,23 @@ class EstacaHeliceContinua:
         :param fck: Resistência característica do concreto (em MPa)
         :param fyk: Resistência característica do aço (em MPa)
         :param carga_vertical_kN: Carga vertical aplicada na estaca (em kN)
-        :param tensao_admissivel_solo: Tensão admissível do solo (em kN/m²)
         :param cobrimento: Cobrimento nominal da armadura (em mm)
         :param diametro_aco: Diâmetro da armadura longitudinal (em mm)
         :param peso_concreto: Peso específico do concreto em kN/m³
+        :param solo: Objeto representando as propriedades do solo
         """
         self.diametro_estaca = diametro_estaca
         self.profundidade_estaca = profundidade_estaca
         self.fck = fck
         self.fyk = fyk
         self.carga_vertical_kN = carga_vertical_kN
-        self.tensao_admissivel_solo = tensao_admissivel_solo
         self.cobrimento = cobrimento / 1000  # Converte de mm para metros
         self.diametro_aco = diametro_aco / 1000  # Converte de mm para metros
         self.peso_concreto = peso_concreto
+        self.solo = solo
+
+        # Define a tensão admissível do solo com base no objeto solo, se disponível
+        self.tensao_admissivel_solo = self.solo.tensao_admissivel if self.solo and hasattr(self.solo, 'tensao_admissivel') else 100  # Valor padrão
 
     def calcular_area_base(self) -> float:
         """Calcula a área da base da estaca."""
@@ -130,18 +132,23 @@ class EstacaHeliceContinua:
         }
 
 
-# Exemplo de uso (com parâmetros realistas)
+# Exemplo de uso (com parâmetros realistas e instância de solo)
+class Solo:
+    def __init__(self, tensao_admissivel: float):
+        self.tensao_admissivel = tensao_admissivel
+
 if __name__ == "__main__":
+    solo = Solo(tensao_admissivel=150)  # Cria o solo com uma tensão admissível específica
     estaca_helice = EstacaHeliceContinua(
         diametro_estaca=0.6,
         profundidade_estaca=15.0,
         fck=30,  # MPa
         fyk=500,  # MPa (Aço CA-50)
         carga_vertical_kN=1200,
-        tensao_admissivel_solo=150,  # kN/m²
         cobrimento=50,  # mm
         diametro_aco=25,  # mm
-        peso_concreto=24  # kN/m³
+        peso_concreto=24,  # kN/m³
+        solo=solo  # Passa a instância de Solo
     )
 
     resultados = estaca_helice.gerar_relatorio_detalhado()

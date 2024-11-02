@@ -1,12 +1,26 @@
-from typing import Dict
 import math
+from typing import Dict
+
+class Solo:
+    """
+    Classe representando as propriedades do solo.
+    """
+    def __init__(self, tensao_admissivel: float, coeficiente_atrito: float = 0.5):
+        """
+        Inicializa uma instância de Solo.
+
+        :param tensao_admissivel: Tensão admissível do solo (kN/m²)
+        :param coeficiente_atrito: Coeficiente de atrito lateral do solo (padrão: 0.5)
+        """
+        self.tensao_admissivel = tensao_admissivel
+        self.coeficiente_atrito = coeficiente_atrito
 
 class Estaca:
     """
     Classe responsável pelos cálculos de uma fundação do tipo Estaca.
     """
 
-    def __init__(self, carga: float, fck: float, diametro: float, comprimento: float, capacidade_solo: float, peso_concreto: float = 25, fyk: float = 500):
+    def __init__(self, carga: float, fck: float, diametro: float, comprimento: float, solo: Solo, peso_concreto: float = 25, fyk: float = 500):
         """
         Inicializa uma instância da fundação Estaca.
 
@@ -14,7 +28,7 @@ class Estaca:
         :param fck: Resistência característica do concreto (MPa)
         :param diametro: Diâmetro da estaca (m)
         :param comprimento: Comprimento da estaca (m)
-        :param capacidade_solo: Capacidade de carga do solo (kN/m²)
+        :param solo: Instância da classe Solo com propriedades do solo
         :param peso_concreto: Peso específico do concreto (kN/m³) - padrão: 25 kN/m³
         :param fyk: Resistência característica do aço (MPa) - padrão: 500 MPa
         """
@@ -22,7 +36,7 @@ class Estaca:
         self.fck = fck
         self.diametro = diametro
         self.comprimento = comprimento
-        self.capacidade_solo = capacidade_solo
+        self.solo = solo
         self.peso_concreto = peso_concreto
         self.fyk = fyk
 
@@ -67,7 +81,7 @@ class Estaca:
         :return: True se a tensão estiver segura, False se exceder a capacidade do solo.
         """
         tensao_no_solo = self.calcular_tensao_no_solo()
-        return tensao_no_solo <= self.capacidade_solo
+        return tensao_no_solo <= self.solo.tensao_admissivel
 
     def calcular_carga_admissivel(self) -> float:
         """
@@ -75,7 +89,7 @@ class Estaca:
 
         :return: Carga admissível (kN)
         """
-        return self.capacidade_solo * self.calcular_area()
+        return self.solo.tensao_admissivel * self.calcular_area()
 
     def verificar_ruptura_solo(self) -> bool:
         """
@@ -128,7 +142,7 @@ class Estaca:
         :return: True se a estaca for estável ao arrancamento, False caso contrário.
         """
         peso_proprio_estaca = self.calcular_volume_concreto() * self.peso_concreto
-        resistencia_atrito_lateral = math.pi * self.diametro * self.comprimento * self.capacidade_solo * 0.5
+        resistencia_atrito_lateral = math.pi * self.diametro * self.comprimento * self.solo.tensao_admissivel * self.solo.coeficiente_atrito
         resistencia_total_arrancamento = peso_proprio_estaca + resistencia_atrito_lateral
 
         return resistencia_total_arrancamento >= self.carga
