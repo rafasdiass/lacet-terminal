@@ -4,7 +4,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render
 import json
-from .calculations import (
+from .helpers import (
     calcular_pilar,
     calcular_viga,
     calcular_laje,
@@ -13,9 +13,10 @@ from .calculations import (
     calcular_viga_continua,
     calcular_flecha,
     calcular_detalhamento,
-    calcular_fundacao
+    calcular_fundacao,
+    obter_estrutura_completa,
+    gerar_relatorio_pdf
 )
-from .helpers import obter_estrutura_completa, gerar_relatorio_pdf
 
 # View para a página inicial
 def index(request):
