@@ -12,24 +12,18 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+# Caminho base do projeto
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-%uhwil515m+i$@1i(x%ftszv-yh+hheo5n#(2#do!wb&6^%($d'
-
-# SECURITY WARNING: don't run with debug turned on in production!
+# Segurança
+SECRET_KEY = 'sua-chave-secreta'  # Substitua pela sua chave secreta real
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']  # Permite todas as origens para desenvolvimento
 
-# Application definition
-
+# Definição das aplicações instaladas
 INSTALLED_APPS = [
-    # Django apps
+    # Aplicações do Django
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -37,32 +31,33 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    # Third-party apps
-    'corsheaders',     # Adicionado: CORS headers para permitir requisições do frontend
+    # Aplicações de terceiros
     'rest_framework',  # Django REST framework para a API
 
-    # Project apps
-    'app_calculator',  # Nosso aplicativo de cálculo
+    # Suas aplicações
+    'app_calculator',  # Seu aplicativo de cálculo
 ]
 
+# Middlewares
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',  # Adicionado: Middleware do CORS
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    # Certifique-se de que o middleware do CORS está acima de CommonMiddleware
+    # Removido o CorsMiddleware
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+# Configuração das URLs
 ROOT_URLCONF = 'config.urls'
 
+# Configurações de templates
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'app_calculator' / 'templates'],  # Adiciona a pasta de templates
+        'DIRS': [BASE_DIR / 'app_calculator' / 'templates'],  # Diretório de templates
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -75,11 +70,10 @@ TEMPLATES = [
     },
 ]
 
+# Aplicação WSGI
 WSGI_APPLICATION = 'config.wsgi.application'
 
-# Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-
+# Configurações do banco de dados
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -87,15 +81,16 @@ DATABASES = {
     }
 }
 
-# Password validation
-# https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
-
+# Validação de senhas
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
     },
     {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {
+            'min_length': 8,  # Define um tamanho mínimo para as senhas
+        }
     },
     {
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
@@ -105,31 +100,21 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-# Internationalization
-# https://docs.djangoproject.com/en/5.1/topics/i18n/
-
+# Internacionalização
 LANGUAGE_CODE = 'pt-br'
-
 TIME_ZONE = 'America/Sao_Paulo'
-
 USE_I18N = True
-
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.1/howto/static-files/
-
+# Arquivos estáticos (CSS, JavaScript, Imagens)
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [BASE_DIR / 'app_calculator' / 'static']  # Adiciona a pasta de arquivos estáticos
+STATICFILES_DIRS = [BASE_DIR / 'app_calculator' / 'static']  # Diretório de arquivos estáticos
 
-# Configurações para arquivos de mídia (opcional)
+# Arquivos de mídia
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# CORS configuration to allow frontend access
-CORS_ALLOW_ALL_ORIGINS = True  # Permite todas as origens para desenvolvimento
-
-# Django REST framework settings (opcional)
+# Configurações do Django REST Framework
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',
@@ -140,7 +125,5 @@ REST_FRAMEWORK = {
     ],
 }
 
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
-
+# Tipo de campo padrão para chaves primárias
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
