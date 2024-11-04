@@ -134,7 +134,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Configurações do CORS
 CORS_ALLOWED_ORIGINS = [
-    'https://lct-frontlcalc-i0uc7nho6-rafasdias-projects.vercel.app',  # URL do seu front-end hospedado na Vercel
+    'https://lct-frontlcalc-i0uc7nho6-rafasdias-projects.vercel.app', 
+    'https://lct-frontlcalc.vercel.app', # URL do seu front-end hospedado na Vercel
 ]
 
 # Opcional: Se você quiser permitir credenciais (cookies, autenticação)
