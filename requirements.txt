@@ -14,6 +14,7 @@ bleach==6.2.0
 bottle==0.13.2
 bottle-websocket==0.2.9
 certifi==2024.8.30
+chardet==5.2.0
 charset-normalizer==3.4.0
 comm==0.2.2
 concreteproperties==0.6.4
@@ -92,6 +93,7 @@ python-box==7.2.0
 python-dateutil==2.9.0.post0
 pyzmq==26.2.0
 referencing==0.35.1
+reportlab==4.2.5
 requests==2.32.3
 requests_download==0.1.2
 rich==13.9.3
