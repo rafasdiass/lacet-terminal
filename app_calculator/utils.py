@@ -1,5 +1,3 @@
-# app_calculator/utils.py
-
 from typing import Dict
 from estruturas import (
     SapataRigida,
@@ -14,7 +12,7 @@ from estruturas import (
 
 def escolher_tipo_fundacao(carga: float, largura: float, altura: float) -> Dict[str, float]:
     """
-    Função que exibe as opções de tipo de fundação ao usuário e instância
+    Função que exibe as opções de tipo de fundação ao usuário e instancia
     a classe correspondente para calcular os parâmetros de fundação com base na carga,
     largura e altura fornecidos.
 
