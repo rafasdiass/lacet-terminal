@@ -33,6 +33,7 @@ INSTALLED_APPS = [
 
     # Aplicações de terceiros
     'rest_framework',        # Django REST Framework para a API
+    'corsheaders',           # Adicione 'corsheaders' para suportar CORS
 
     # Suas aplicações
     'app_calculator',        # Seu aplicativo de cálculo
@@ -42,10 +43,9 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-
-    # Middleware personalizado para CORS
-    'app_calculator.middleware.CORSMiddleware',
-
+    
+    'corsheaders.middleware.CorsMiddleware',  # Middleware de CORS
+    
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',  # Se estiver usando CSRF
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -133,20 +133,15 @@ REST_FRAMEWORK = {
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Configurações do CORS
-# Como estamos usando um middleware personalizado, as configurações específicas de CORS são gerenciadas pelo middleware.
-# No entanto, você pode definir variáveis aqui para serem usadas no middleware, se desejar.
+CORS_ALLOWED_ORIGINS = [
+    'https://lct-frontlcalc-i0uc7nho6-rafasdias-projects.vercel.app',  # URL do seu front-end hospedado na Vercel
+]
 
-# Exemplo: Definir uma lista de origens permitidas
-# CORS_ALLOWED_ORIGINS = [
-#     'http://localhost:4200',
-#     'https://seu-dominio.com',
-# ]
-
-# Se precisar permitir credenciais (cookies, autenticação)
+# Opcional: Se você quiser permitir credenciais (cookies, autenticação)
 # CORS_ALLOW_CREDENTIALS = True
 
-# Se você quiser permitir métodos HTTP específicos
+# Opcional: Se você quiser permitir todos os métodos HTTP
 # CORS_ALLOW_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
 
-# Se você precisar permitir todos os headers nas solicitações
+# Opcional: Se você precisar permitir todos os headers
 # CORS_ALLOW_HEADERS = ['*']
