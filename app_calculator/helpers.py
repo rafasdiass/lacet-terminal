@@ -1,235 +1,401 @@
 # helpers.py
 
-import math
-# Importar classes de fundação e estruturas
+import datetime
+import os
 
-# Atualize os imports para apontar diretamente para os módulos onde as classes estão definidas
-from .estruturas.pilar import Pilar
-from .estruturas.viga import Viga
-from .estruturas.laje import Laje
-from .estruturas.arco import Arco
-from .estruturas.trelica import Trelica
-from .estruturas.viga_continua import VigaContinua
-from .estruturas.flecha import Flecha
-from .estruturas.detalhamento import Detalhamento
+# Importar bibliotecas necessárias para geração de PDF
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+from reportlab.lib.units import cm
+from reportlab.lib import colors
+from reportlab.platypus import (
+    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+)
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
 
-from .fundacoes.sapata import Sapata
-from .fundacoes.sapata_rigida import SapataRigida
-from .fundacoes.sapata_corrida import SapataCorrida
-from .fundacoes.bloco import Bloco
-from .fundacoes.tubulao import Tubulao
-from .fundacoes.tubulao_ceu_aberto import TubulaoCeuAberto
-from .fundacoes.tubulao_ar_comprimido import TubulaoArComprimido
-from .fundacoes.estaca import Estaca
-from .fundacoes.estaca_helice_continua import EstacaHeliceContinua
-from .fundacoes.radier import Radier
-from .fundacoes.barrete import Barrete
+# Importar classes de estruturas
+from .estruturas import (
+    Pilar,
+    Viga,
+    Laje,
+    Arco,
+    Trelica,
+    VigaContinua,
+    Flecha,
+    Detalhamento
+)
 
+# Importar o FundacaoManager e SoloManager
+from .fundacoes.fundacao_manager import FundacaoManager
 from .solo.solo_manager import SoloManager
+
+# Definição das opções disponíveis para campos não numéricos
+MATERIAIS_DISPONIVEIS = [
+    {'codigo': 'concreto_c20', 'nome': 'Concreto C20', 'resistencia': 20, 'densidade': 2400, 'modulo_elasticidade': 21000},
+    {'codigo': 'concreto_c25', 'nome': 'Concreto C25', 'resistencia': 25, 'densidade': 2400, 'modulo_elasticidade': 25000},
+    {'codigo': 'aco_a36', 'nome': 'Aço A36', 'resistencia': 36, 'densidade': 7850, 'modulo_elasticidade': 200000},
+    # Adicione outros materiais conforme necessário
+]
+
+SOLOS_DISPONIVEIS = [
+    {'codigo': 'arenoso', 'nome': 'Solo Arenoso', 'capacidade_carga': 150, 'coeficiente_atrito': 0.5, 'compressibilidade': 1.2},
+    {'codigo': 'argiloso', 'nome': 'Solo Argiloso', 'capacidade_carga': 100, 'coeficiente_atrito': 0.3, 'compressibilidade': 1.5},
+    {'codigo': 'rochoso', 'nome': 'Solo Rochoso', 'capacidade_carga': 300, 'coeficiente_atrito': 0.7, 'compressibilidade': 0.8},
+    # Adicione outros tipos de solo conforme necessário
+]
+
+# Funções para obter as opções disponíveis
+def obter_materiais_disponiveis():
+    return MATERIAIS_DISPONIVEIS
+
+def obter_solos_disponiveis():
+    return SOLOS_DISPONIVEIS
+
+def obter_todas_opcoes():
+    return {
+        'materiais': MATERIAIS_DISPONIVEIS,
+        'solos': SOLOS_DISPONIVEIS,
+        # Inclua outras opções conforme necessário
+    }
+
+# Funções de cálculo
 
 def calcular_pilar(dados):
     largura = float(dados.get('largura', 0))
     altura = float(dados.get('altura', 0))
     carga = float(dados.get('carga', 0))
-    area = largura * altura
-    tensao = carga / area if area > 0 else 0
-    verificacao = "Tensão dentro dos limites aceitáveis." if tensao <= 25 else "A tensão excede a resistência do material."
-    return {
-        'tipo': 'Pilar',
-        'largura': largura,
-        'altura': altura,
-        'carga': carga,
-        'area_secao': area,
-        'tensao_normal': tensao,
-        'verificacao': verificacao
-    }
+    material_codigo = dados.get('material')
+
+    # Validar entradas
+    if largura <= 0 or altura <= 0 or carga <= 0:
+        return {'erro': 'Largura, altura e carga devem ser maiores que zero.'}
+    if not material_codigo:
+        return {'erro': 'Material não especificado.'}
+
+    # Obter material selecionado
+    material_data = next((m for m in MATERIAIS_DISPONIVEIS if m['codigo'] == material_codigo), None)
+    if not material_data:
+        return {'erro': 'Material selecionado inválido.'}
+
+    # Criar objeto Pilar e realizar o cálculo usando a classe Pilar
+    pilar = Pilar(largura=largura, altura=altura, carga=carga, material=material_data)
+    resultado = pilar.gerar_relatorio()
+
+    return resultado
 
 def calcular_viga(dados):
     largura = float(dados.get('largura', 0))
     altura = float(dados.get('altura', 0))
-    carga = float(dados.get('carga', 0))
     comprimento = float(dados.get('comprimento', 0))
-    if comprimento <= 0:
-        return {'erro': 'Comprimento inválido para viga.'}
-    
-    area = largura * altura
-    inercia = (largura * altura**3) / 12
-    momento = (carga * comprimento) / 8
-    tensao = (momento * (altura / 2)) / inercia
-    verificacao = "Tensão dentro dos limites aceitáveis." if tensao <= 25 else "A tensão excede a resistência do material."
-    return {
-        'tipo': 'Viga',
-        'largura': largura,
-        'altura': altura,
-        'comprimento': comprimento,
-        'carga': carga,
-        'area_secao': area,
-        'momento_inercia': inercia,
-        'momento_fletor_maximo': momento,
-        'tensao_normal_maxima': tensao,
-        'verificacao': verificacao
-    }
+    carga = float(dados.get('carga', 0))
+    material_codigo = dados.get('material')
+    tipo_carga = dados.get('tipo_carga')
+    tipo_apoio = dados.get('tipo_apoio')
+
+    # Validar entradas
+    if largura <= 0 or altura <= 0 or comprimento <= 0 or carga <= 0:
+        return {'erro': 'Todos os valores numéricos devem ser maiores que zero.'}
+    if not material_codigo:
+        return {'erro': 'Material não especificado.'}
+    if not tipo_carga:
+        return {'erro': 'Tipo de carga não especificado.'}
+    if not tipo_apoio:
+        return {'erro': 'Tipo de apoio não especificado.'}
+
+    # Obter material selecionado
+    material_data = next((m for m in MATERIAIS_DISPONIVEIS if m['codigo'] == material_codigo), None)
+    if not material_data:
+        return {'erro': 'Material selecionado inválido.'}
+
+    # Criar objeto Viga e realizar o cálculo usando a classe Viga
+    viga = Viga(
+        largura=largura,
+        altura=altura,
+        comprimento=comprimento,
+        carga=carga,
+        material=material_data,
+        tipo_carga=tipo_carga,
+        tipo_apoio=tipo_apoio
+    )
+    resultado = viga.gerar_relatorio()
+
+    return resultado
 
 def calcular_laje(dados):
     largura = float(dados.get('largura', 0))
-    altura = float(dados.get('altura', 0))
+    comprimento = float(dados.get('comprimento', 0))
     carga = float(dados.get('carga', 0))
-    area = largura * altura
-    carregamento = carga / area
-    limite_carregamento = 10.0  # Exemplo de limite de carregamento
-    verificacao = "Carregamento dentro dos limites aceitáveis." if carregamento <= limite_carregamento else "Carregamento excede o limite."
-    return {
-        'tipo': 'Laje',
-        'largura': largura,
-        'altura': altura,
-        'carga': carga,
-        'area': area,
-        'carregamento': carregamento,
-        'verificacao': verificacao
-    }
+    material_codigo = dados.get('material')
+
+    # Validar entradas
+    if largura <= 0 or comprimento <= 0 or carga <= 0:
+        return {'erro': 'Largura, comprimento e carga devem ser maiores que zero.'}
+    if not material_codigo:
+        return {'erro': 'Material não especificado.'}
+
+    # Obter material selecionado
+    material_data = next((m for m in MATERIAIS_DISPONIVEIS if m['codigo'] == material_codigo), None)
+    if not material_data:
+        return {'erro': 'Material selecionado inválido.'}
+
+    # Criar objeto Laje e realizar o cálculo
+    laje = Laje(largura=largura, comprimento=comprimento, carga=carga, material=material_data)
+    resultado = laje.gerar_relatorio()
+
+    return resultado
 
 def calcular_arco(dados):
     largura = float(dados.get('largura', 0))
-    altura = float(dados.get('altura', 0))
-    carga = float(dados.get('carga', 0))
+    espessura = float(dados.get('espessura', 0))
     raio = float(dados.get('raio', 0))
-    if raio <= 0:
-        return {'erro': 'Raio inválido para arco.'}
-    
-    area = largura * altura
-    tensao = carga / area if area > 0 else 0
-    comprimento_arco = 2 * math.pi * raio
-    verificacao = "Tensão dentro dos limites aceitáveis." if tensao <= 25 else "A tensão excede a resistência do material."
-    return {
-        'tipo': 'Arco',
-        'largura': largura,
-        'altura': altura,
-        'carga': carga,
-        'raio': raio,
-        'comprimento_arco': comprimento_arco,
-        'area': area,
-        'tensao_normal': tensao,
-        'verificacao': verificacao
-    }
+    carga = float(dados.get('carga', 0))
+    material_codigo = dados.get('material')
+
+    # Validar entradas
+    if largura <= 0 or espessura <= 0 or raio <= 0 or carga <= 0:
+        return {'erro': 'Todos os valores numéricos devem ser maiores que zero.'}
+    if not material_codigo:
+        return {'erro': 'Material não especificado.'}
+
+    # Obter material selecionado
+    material_data = next((m for m in MATERIAIS_DISPONIVEIS if m['codigo'] == material_codigo), None)
+    if not material_data:
+        return {'erro': 'Material selecionado inválido.'}
+
+    # Criar objeto Arco e realizar o cálculo
+    arco = Arco(
+        largura=largura,
+        espessura=espessura,
+        raio=raio,
+        carga=carga,
+        material=material_data
+    )
+    resultado = arco.gerar_relatorio()
+
+    return resultado
 
 def calcular_trelica(dados):
+    carga = float(dados.get('carga', 0))
     largura = float(dados.get('largura', 0))
     altura = float(dados.get('altura', 0))
-    carga = float(dados.get('carga', 0))
-    area = largura * altura
-    tensao = carga / area if area > 0 else 0
-    verificacao = "Tensão dentro dos limites aceitáveis." if tensao <= 25 else "A tensão excede a resistência do material."
-    return {
-        'tipo': 'Treliça',
-        'largura': largura,
-        'altura': altura,
-        'carga': carga,
-        'area': area,
-        'tensao_normal': tensao,
-        'verificacao': verificacao
-    }
+    material_codigo = dados.get('material')
+
+    # Validar entradas
+    if carga <= 0 or largura <= 0 or altura <= 0:
+        return {'erro': 'Todos os valores numéricos devem ser maiores que zero.'}
+    if not material_codigo:
+        return {'erro': 'Material não especificado.'}
+
+    # Obter material selecionado
+    material_data = next((m for m in MATERIAIS_DISPONIVEIS if m['codigo'] == material_codigo), None)
+    if not material_data:
+        return {'erro': 'Material selecionado inválido.'}
+
+    # Criar objeto Trelica e realizar o cálculo
+    trelica = Trelica(
+        carga=carga,
+        largura=largura,
+        altura=altura,
+        material=material_data
+    )
+    resultado = trelica.gerar_relatorio()
+
+    return resultado
 
 def calcular_viga_continua(dados):
     largura = float(dados.get('largura', 0))
     altura = float(dados.get('altura', 0))
-    carga = float(dados.get('carga', 0))
-    comprimento = float(dados.get('comprimento', 0))
-    if comprimento <= 0:
-        return {'erro': 'Comprimento inválido para viga contínua.'}
-    
-    area = largura * altura
-    momento = (carga * comprimento**2) / 8  # Fórmula para momento em viga contínua
-    inercia = (largura * altura**3) / 12
-    tensao = (momento * (altura / 2)) / inercia
-    verificacao = "Tensão dentro dos limites aceitáveis." if tensao <= 25 else "A tensão excede a resistência do material."
-    return {
-        'tipo': 'Viga Contínua',
-        'largura': largura,
-        'altura': altura,
-        'comprimento': comprimento,
-        'carga': carga,
-        'area': area,
-        'momento_fletor': momento,
-        'tensao_normal': tensao,
-        'verificacao': verificacao
-    }
+    comprimento_total = float(dados.get('comprimento_total', 0))
+    numero_apoios = int(dados.get('numero_apoios', 0))
+    carga_distribuida = float(dados.get('carga_distribuida', 0))
+    material_codigo = dados.get('material')
+
+    # Validar entradas
+    if largura <= 0 or altura <= 0 or comprimento_total <= 0 or carga_distribuida <= 0 or numero_apoios <= 1:
+        return {'erro': 'Todos os valores numéricos devem ser maiores que zero e número de apoios deve ser maior que 1.'}
+    if not material_codigo:
+        return {'erro': 'Material não especificado.'}
+
+    # Obter material selecionado
+    material_data = next((m for m in MATERIAIS_DISPONIVEIS if m['codigo'] == material_codigo), None)
+    if not material_data:
+        return {'erro': 'Material selecionado inválido.'}
+
+    # Criar objeto VigaContinua e realizar o cálculo
+    viga_continua = VigaContinua(
+        largura=largura,
+        altura=altura,
+        comprimento_total=comprimento_total,
+        numero_apoios=numero_apoios,
+        carga_distribuida=carga_distribuida,
+        material=material_data
+    )
+    resultado = viga_continua.gerar_relatorio()
+
+    return resultado
 
 def calcular_flecha(dados):
     largura = float(dados.get('largura', 0))
     altura = float(dados.get('altura', 0))
-    carga = float(dados.get('carga', 0))
     comprimento = float(dados.get('comprimento', 0))
-    if comprimento <= 0:
-        return {'erro': 'Comprimento inválido para flecha.'}
-    
-    E = 210000  # Módulo de elasticidade do aço em MPa
-    I = (largura * altura**3) / 12  # Momento de inércia
-    deflexao = (5 * carga * comprimento**4) / (384 * E * I)
-    verificacao = "Deflexão dentro dos limites aceitáveis." if deflexao < 0.03 * comprimento else "Deflexão excessiva."
-    return {
-        'tipo': 'Flecha',
-        'largura': largura,
-        'altura': altura,
-        'comprimento': comprimento,
-        'carga': carga,
-        'deflexao': deflexao,
-        'verificacao': verificacao
-    }
+    carga_distribuida = float(dados.get('carga_distribuida', 0))
+    material_codigo = dados.get('material')
+    tipo_apoio = dados.get('tipo_apoio')
+
+    # Validar entradas
+    if largura <= 0 or altura <= 0 or comprimento <= 0 or carga_distribuida <= 0:
+        return {'erro': 'Todos os valores numéricos devem ser maiores que zero.'}
+    if not material_codigo:
+        return {'erro': 'Material não especificado.'}
+    if not tipo_apoio:
+        return {'erro': 'Tipo de apoio não especificado.'}
+
+    # Obter material selecionado
+    material_data = next((m for m in MATERIAIS_DISPONIVEIS if m['codigo'] == material_codigo), None)
+    if not material_data:
+        return {'erro': 'Material selecionado inválido.'}
+
+    # Criar objeto Flecha e realizar o cálculo
+    flecha = Flecha(
+        largura=largura,
+        altura=altura,
+        comprimento=comprimento,
+        carga_distribuida=carga_distribuida,
+        material=material_data,
+        tipo_apoio=tipo_apoio
+    )
+    resultado = flecha.gerar_relatorio()
+
+    return resultado
 
 def calcular_detalhamento(dados):
-    # Detalhamento específico da peça com base nas entradas fornecidas.
-    largura = float(dados.get('largura', 0))
-    altura = float(dados.get('altura', 0))
-    carga = float(dados.get('carga', 0))
-    return {
-        'tipo': 'Detalhamento',
-        'largura': largura,
-        'altura': altura,
-        'carga': carga,
-        'detalhe': 'Detalhamento estrutural gerado com sucesso.'
-    }
+    elemento = dados.get('elemento')
+    material_codigo = dados.get('material')
+    # Outros parâmetros conforme o elemento
+
+    # Validar entradas
+    if not elemento:
+        return {'erro': 'Elemento não especificado.'}
+    if not material_codigo:
+        return {'erro': 'Material não especificado.'}
+
+    # Obter material selecionado
+    material_data = next((m for m in MATERIAIS_DISPONIVEIS if m['codigo'] == material_codigo), None)
+    if not material_data:
+        return {'erro': 'Material selecionado inválido.'}
+
+    # Criar objeto Detalhamento e realizar o cálculo
+    detalhamento = Detalhamento(elemento=elemento, material=material_data, **dados)
+    resultado = detalhamento.gerar_relatorio()
+
+    return resultado
 
 def calcular_fundacao(dados):
     tipo_fundacao = dados.get('tipo_fundacao')
     carga = float(dados.get('carga', 0))
-    largura = float(dados.get('largura', 0))
-    altura = float(dados.get('altura', 0))
     profundidade = float(dados.get('profundidade', 0))
+    solo_codigo = dados.get('solo')
 
+    # Validar entradas
+    if carga <= 0 or profundidade <= 0:
+        return {'erro': 'Carga e profundidade devem ser maiores que zero.'}
     if not tipo_fundacao:
         return {'erro': 'Tipo de fundação não especificado.'}
+    if not solo_codigo:
+        return {'erro': 'Tipo de solo não especificado.'}
 
-    fundacoes = {
-        'sapata': Sapata(largura, altura, carga, profundidade),
-        'sapata_rigida': SapataRigida(largura, altura, carga, profundidade),
-        'sapata_corrida': SapataCorrida(largura, altura, carga, profundidade),
-        'bloco': Bloco(largura, altura, carga, profundidade),
-        'barrete': Barrete(largura, altura, carga, profundidade),
-        'estaca': Estaca(largura, altura, carga, profundidade),
-        'estaca_helice_continua': EstacaHeliceContinua(largura, altura, carga, profundidade),
-        'radier': Radier(largura, altura, carga, profundidade),
-        'tubulao': Tubulao(largura, altura, carga, profundidade),
-        'tubulao_ceu_aberto': TubulaoCeuAberto(largura, altura, carga, profundidade),
-        'tubulao_ar_comprimido': TubulaoArComprimido(largura, altura, carga, profundidade)
-    }
+    # Obter dados do solo
+    solo_data = next((s for s in SOLOS_DISPONIVEIS if s['codigo'] == solo_codigo), None)
+    if not solo_data:
+        return {'erro': 'Solo selecionado inválido.'}
 
-    fundacao = fundacoes.get(tipo_fundacao)
-    if not fundacao:
-        return {'erro': f'Tipo de fundação "{tipo_fundacao}" não reconhecido.'}
+    # Criar camada de solo usando SoloManager
+    solo = SoloManager.criar_camada(solo_codigo, profundidade, **solo_data)
 
-    resultado = fundacao.gerar_relatorio()  # Assumindo que cada classe tem um método gerar_relatorio()
+    # Criar objeto fundação usando FundacaoManager
+    try:
+        fundacao = FundacaoManager.criar_fundacao(
+            tipo=tipo_fundacao,
+            solo_tipo=solo_codigo,
+            profundidade=profundidade,
+            carga=carga,
+            **dados
+        )
+    except ValueError as e:
+        return {'erro': str(e)}
+
+    # Realizar o cálculo da fundação
+    resultado = fundacao.gerar_relatorio()
+
     return resultado
 
 def obter_estrutura_completa():
-    # Implementar a função para retornar a estrutura completa dos campos
-    # Pode ser um dicionário com informações sobre os campos necessários para cada cálculo
+    # Retornar a estrutura completa dos campos necessários para cada cálculo
     estrutura = {
-        'pilar': ['largura', 'altura', 'carga'],
-        'viga': ['largura', 'altura', 'carga', 'comprimento'],
-        # Adicionar para os demais tipos
+        'pilar': {
+            'numericos': ['largura', 'altura', 'carga'],
+            'opcoes': {
+                'material': MATERIAIS_DISPONIVEIS
+            }
+        },
+        'viga': {
+            'numericos': ['largura', 'altura', 'comprimento', 'carga'],
+            'opcoes': {
+                'material': MATERIAIS_DISPONIVEIS,
+                'tipo_carga': ['pontual', 'distribuida'],
+                'tipo_apoio': ['engastado', 'apoio_simples']
+            }
+        },
+        'laje': {
+            'numericos': ['largura', 'comprimento', 'carga'],
+            'opcoes': {
+                'material': MATERIAIS_DISPONIVEIS
+            }
+        },
+        'arco': {
+            'numericos': ['largura', 'espessura', 'raio', 'carga'],
+            'opcoes': {
+                'material': MATERIAIS_DISPONIVEIS
+            }
+        },
+        'trelica': {
+            'numericos': ['largura', 'altura', 'carga'],
+            'opcoes': {
+                'material': MATERIAIS_DISPONIVEIS
+            }
+        },
+        'viga_continua': {
+            'numericos': ['largura', 'altura', 'comprimento_total', 'numero_apoios', 'carga_distribuida'],
+            'opcoes': {
+                'material': MATERIAIS_DISPONIVEIS
+            }
+        },
+        'flecha': {
+            'numericos': ['largura', 'altura', 'comprimento', 'carga_distribuida'],
+            'opcoes': {
+                'material': MATERIAIS_DISPONIVEIS,
+                'tipo_apoio': ['engastado', 'apoio_simples']
+            }
+        },
+        'detalhamento': {
+            'numericos': [],  # Dependendo do elemento
+            'opcoes': {
+                'material': MATERIAIS_DISPONIVEIS,
+                'elemento': ['viga', 'pilar', 'laje']
+            }
+        },
+        'fundacao': {
+            'numericos': ['carga', 'profundidade'],
+            'opcoes': {
+                'solo': SOLOS_DISPONIVEIS,
+                'tipo_fundacao': ['sapata', 'estaca', 'bloco', 'radier', 'tubulão', 'sapata_corrida', 'sapata_rigida', 'barrete']
+            }
+        }
     }
     return estrutura
 
+# Função para gerar o relatório PDF
 def gerar_relatorio_pdf(dados):
     """
     Gera um relatório em PDF baseado nos dados fornecidos.
@@ -239,13 +405,13 @@ def gerar_relatorio_pdf(dados):
         dados (dict): Dicionário contendo os dados para o relatório.
 
     Returns:
-        str: O nome do arquivo PDF gerado.
+        str: O caminho completo do arquivo PDF gerado.
     """
     # Definir o nome do arquivo com base na data e hora atual
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     nome_arquivo = f"relatorio_{timestamp}.pdf"
 
-    # Definir o caminho completo do arquivo
+    # Definir o caminho completo do arquivo (certifique-se de que a pasta 'media' existe)
     caminho_arquivo = os.path.join('media', nome_arquivo)
 
     # Criar o documento
@@ -280,8 +446,18 @@ def gerar_relatorio_pdf(dados):
     tipo = dados.get('tipo', 'Não especificado')
     elements.append(Paragraph(f"Tipo de Elemento: {tipo}", styles['Normal']))
 
-    # Adicionar dados específicos com base no tipo
+    # Adicionar materiais e outros campos no relatório
+    if 'material' in dados:
+        elements.append(Paragraph(f"Material: {dados.get('material', 'Não especificado')}", styles['Normal']))
+    if 'solo' in dados:
+        elements.append(Paragraph(f"Solo: {dados.get('solo', 'Não especificado')}", styles['Normal']))
+    if 'tipo_carga' in dados:
+        elements.append(Paragraph(f"Tipo de Carga: {dados.get('tipo_carga', 'Não especificado')}", styles['Normal']))
+    if 'tipo_apoio' in dados:
+        elements.append(Paragraph(f"Tipo de Apoio: {dados.get('tipo_apoio', 'Não especificado')}", styles['Normal']))
     elements.append(Spacer(1, 12))
+
+    # Adicionar dados específicos com base no tipo
     elements.append(Paragraph("Resultados do Cálculo:", styles['LeftHeading']))
 
     # Tabela de resultados
@@ -289,6 +465,8 @@ def gerar_relatorio_pdf(dados):
 
     # Iterar sobre os itens do dicionário e adicionar à tabela
     for chave, valor in dados.items():
+        if chave in ['tipo', 'material', 'solo', 'tipo_carga', 'tipo_apoio']:
+            continue  # Já adicionados anteriormente
         # Formatar os valores numéricos
         if isinstance(valor, float):
             valor_formatado = f"{valor:.2f}"
@@ -326,3 +504,21 @@ def gerar_relatorio_pdf(dados):
     doc.build(elements, onLaterPages=rodape, onFirstPage=rodape)
 
     return caminho_arquivo
+
+# Lista de funções disponíveis para importação
+__all__ = [
+    'calcular_pilar',
+    'calcular_viga',
+    'calcular_laje',
+    'calcular_arco',
+    'calcular_trelica',
+    'calcular_viga_continua',
+    'calcular_flecha',
+    'calcular_detalhamento',
+    'calcular_fundacao',
+    'gerar_relatorio_pdf',
+    'obter_materiais_disponiveis',
+    'obter_solos_disponiveis',
+    'obter_todas_opcoes',
+    'obter_estrutura_completa'
+]

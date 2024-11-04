@@ -15,12 +15,18 @@ from .helpers import (
     calcular_detalhamento,
     calcular_fundacao,
     obter_estrutura_completa,
+    obter_materiais_disponiveis,
+    obter_solos_disponiveis,
     gerar_relatorio_pdf
 )
 
 # View para a página inicial
 def index(request):
     return render(request, 'index.html')
+
+# View para a página "Sobre"
+def about(request):
+    return render(request, 'about.html')
 
 # View para calcular Pilar
 @csrf_exempt
@@ -150,6 +156,28 @@ def estrutura_completa_view(request):
     else:
         return JsonResponse({'erro': 'Método não suportado.'}, status=405)
 
+# View para obter materiais disponíveis
+def obter_materiais_view(request):
+    if request.method == 'GET':
+        try:
+            materiais = obter_materiais_disponiveis()
+            return JsonResponse({'materiais': materiais})
+        except Exception as e:
+            return JsonResponse({'erro': str(e)}, status=400)
+    else:
+        return JsonResponse({'erro': 'Método não suportado.'}, status=405)
+
+# View para obter solos disponíveis
+def obter_solos_view(request):
+    if request.method == 'GET':
+        try:
+            solos = obter_solos_disponiveis()
+            return JsonResponse({'solos': solos})
+        except Exception as e:
+            return JsonResponse({'erro': str(e)}, status=400)
+    else:
+        return JsonResponse({'erro': 'Método não suportado.'}, status=405)
+
 # View para exportar relatório em PDF
 @csrf_exempt
 def exportar_relatorio_view(request):
@@ -157,18 +185,14 @@ def exportar_relatorio_view(request):
         try:
             dados = json.loads(request.body)
             # Gera o relatório em PDF
-            nome_arquivo = gerar_relatorio_pdf(dados)
+            caminho_arquivo = gerar_relatorio_pdf(dados)
 
             # Abre o arquivo gerado e retorna como resposta HTTP
-            with open(nome_arquivo, 'rb') as pdf_file:
+            with open(caminho_arquivo, 'rb') as pdf_file:
                 response = HttpResponse(pdf_file.read(), content_type='application/pdf')
-                response['Content-Disposition'] = f'attachment; filename="{nome_arquivo}"'
+                response['Content-Disposition'] = f'attachment; filename="{os.path.basename(caminho_arquivo)}"'
                 return response
         except Exception as e:
             return JsonResponse({'erro': str(e)}, status=400)
     else:
         return JsonResponse({'erro': 'Método não suportado.'}, status=405)
-
-# View para a página "Sobre"
-def about(request):
-    return render(request, 'about.html')

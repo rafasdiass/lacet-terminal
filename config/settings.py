@@ -32,19 +32,22 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     # Aplicações de terceiros
-    'rest_framework',  # Django REST framework para a API
+    'rest_framework',        # Django REST Framework para a API
 
     # Suas aplicações
-    'app_calculator',  # Seu aplicativo de cálculo
+    'app_calculator',        # Seu aplicativo de cálculo
 ]
 
 # Middlewares
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+
+    # Middleware personalizado para CORS
+    'app_calculator.middleware.CORSMiddleware',
+
     'django.middleware.common.CommonMiddleware',
-    # Removido o CorsMiddleware
-    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',  # Se estiver usando CSRF
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -104,6 +107,7 @@ AUTH_PASSWORD_VALIDATORS = [
 LANGUAGE_CODE = 'pt-br'
 TIME_ZONE = 'America/Sao_Paulo'
 USE_I18N = True
+USE_L10N = True  # Se estiver usando versões do Django abaixo de 4.0
 USE_TZ = True
 
 # Arquivos estáticos (CSS, JavaScript, Imagens)
@@ -127,3 +131,22 @@ REST_FRAMEWORK = {
 
 # Tipo de campo padrão para chaves primárias
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Configurações do CORS
+# Como estamos usando um middleware personalizado, as configurações específicas de CORS são gerenciadas pelo middleware.
+# No entanto, você pode definir variáveis aqui para serem usadas no middleware, se desejar.
+
+# Exemplo: Definir uma lista de origens permitidas
+# CORS_ALLOWED_ORIGINS = [
+#     'http://localhost:4200',
+#     'https://seu-dominio.com',
+# ]
+
+# Se precisar permitir credenciais (cookies, autenticação)
+# CORS_ALLOW_CREDENTIALS = True
+
+# Se você quiser permitir métodos HTTP específicos
+# CORS_ALLOW_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
+
+# Se você precisar permitir todos os headers nas solicitações
+# CORS_ALLOW_HEADERS = ['*']
